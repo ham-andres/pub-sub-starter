@@ -28,9 +28,51 @@ func main() {
 	}
 	
 	queName := routing.PauseKey + "." + clientName
-	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, queName, routing.PauseKey, pubsub.Transient)	
+	_, _, err = pubsub.DeclareAndBind(conn,
+								routing.ExchangePerilDirect,
+								queName,
+								routing.PauseKey,
+								pubsub.Transient,
+							)	
 	if err != nil {
 		log.Fatalf("Declare and bind failure: %v", err)
+	}
+
+	// current working area
+	gState := gamelogic.NewGameState(clientName)
+	for {
+		inputs := gamelogic.GetInput()
+		if len(inputs) == 0 {
+			continue 
+		}
+		switch inputs[0] {
+		case "spawn":
+			err = gState.CommandSpawn(inputs)
+			if err != nil {
+				log.Printf("Command Spawn issue: %v", err)
+			}
+		case "move":
+			move, err := gState.CommandMove(inputs)
+			if err != nil {
+				log.Printf("Command move failed: %v",err)
+			} else {
+				log.Printf("Move Succesfull %v",move)
+			}
+		case "status":
+			gState.CommandStatus()
+		
+		case "help":
+			gamelogic.PrintClientHelp()
+	
+		case "spam":
+			log.Println("Spamming not allowed yet!")
+	
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			log.Println("Invalid command! Use proper command!!")
+		}
 	}
 
 	// wait for ctrl + C 

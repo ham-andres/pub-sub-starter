@@ -20,3 +20,13 @@ point-to-point messaging. The server publishes game state changes
 listening. Each client gets its own durable queue
 (e.g. `pause.<username>`), so messages aren't lost even if a
 client is offline when the message is published.
+
+### Client CLI Commands
+
+Run the client to enter the interactive REPL:
+
+* `spawn <location> <unit_type>` - Spawns a unit (`infantry`, `cavalry`, `artillery`) in a region.
+* `move <location> <unit_id>` - Moves a specified unit to a destination.
+* `status` - Displays the current state of your units and locations.
+* `help` - Lists available commands.
+* `quit` - Exits the game client.
