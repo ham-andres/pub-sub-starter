@@ -30,3 +30,7 @@ Run the client to enter the interactive REPL:
 * `status` - Displays the current state of your units and locations.
 * `help` - Lists available commands.
 * `quit` - Exits the game client.
+
+## Game Logs Queue
+
+The server declares a durable `game_logs` queue and binds it to the Peril topic exchange. Durable queues survive RabbitMQ restarts and can be shared by multiple consumers.

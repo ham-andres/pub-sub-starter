@@ -28,11 +28,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Connection Channel creation failed: %v", err)
 	}
+	// declare and bind durable
+	key := "game_logs.*"
+	_,_, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, key, pubsub.Durable)
+	if err != nil {
+		log.Fatalf("DeclareAndBind failed in server: %v", err)
+	}
+	// publishing
 	err = pubsub.PublishJSON(connChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{ IsPaused:	true,})
 	if err != nil {
 		log.Fatalf("Couldnt publish json: %v", err)
 	}
 
+	
 	// decoupling
 	gamelogic.PrintServerHelp()
 	for {

@@ -27,6 +27,7 @@ func main() {
 		log.Fatalf("retrieving client name failed: %v", err)
 	}
 	
+	// declare and bind Transient queue
 	queName := routing.PauseKey + "." + clientName
 	_, _, err = pubsub.DeclareAndBind(conn,
 								routing.ExchangePerilDirect,
@@ -38,7 +39,7 @@ func main() {
 		log.Fatalf("Declare and bind failure: %v", err)
 	}
 
-	// current working area
+	// done, for commands
 	gState := gamelogic.NewGameState(clientName)
 	for {
 		inputs := gamelogic.GetInput()
