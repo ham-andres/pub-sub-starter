@@ -34,3 +34,11 @@ Run the client to enter the interactive REPL:
 ## Game Logs Queue
 
 The server declares a durable `game_logs` queue and binds it to the Peril topic exchange. Durable queues survive RabbitMQ restarts and can be shared by multiple consumers.
+
+## Consumers
+
+The client now subscribes to the `pause` routing key on the direct exchange as soon as it starts, using `pubsub.SubscribeJSON`. This runs in a background goroutine, so the client can simultaneously listen for pause/resume messages from the server *and* accept player commands (`spawn`, `move`, `status`, etc.) in its main loop.
+
+Each client binds to its own transient queue named `pause.<username>`, ensuring that pause state is tracked independently per player and cleaned up automatically when the client disconnects.
+
+When a pause message is received, `handlerPause` unmarshals the payload into a `routing.PlayingState` struct and calls `gameState.HandlePause` to update the local game state, then acknowledges the message so it's removed from the queue.

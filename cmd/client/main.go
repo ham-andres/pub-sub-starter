@@ -27,20 +27,36 @@ func main() {
 		log.Fatalf("retrieving client name failed: %v", err)
 	}
 	
-	// declare and bind Transient queue
-	queName := routing.PauseKey + "." + clientName
-	_, _, err = pubsub.DeclareAndBind(conn,
-								routing.ExchangePerilDirect,
-								queName,
-								routing.PauseKey,
-								pubsub.Transient,
-							)	
-	if err != nil {
-		log.Fatalf("Declare and bind failure: %v", err)
-	}
+	// ##declare and bind Transient queue
+	// ## we are commenting it out after using subscribeJSON as it calls DeclareAndBind internally.
+	// it would be redundant to use two DeclareAndBind
+	
+	// queName := routing.PauseKey + "." + clientName
+	// _, _, err = pubsub.DeclareAndBind(conn,
+	// 							routing.ExchangePerilDirect,
+	// 							queName,
+	// 							routing.PauseKey,
+	// 							pubsub.Transient,
+	// 						)	
+	// if err != nil {
+	// 	log.Fatalf("Declare and bind failure: %v", err)
+	// }
 
 	// done, for commands
 	gState := gamelogic.NewGameState(clientName)
+
+	// subscribeJSON
+	queName := routing.PauseKey + "." + clientName
+	err =	 pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect,
+															queName,
+															routing.PauseKey,
+															pubsub.Transient,
+															handlerPause(gState),
+														)
+	if err != nil {
+		log.Printf("SubscribeJSON failed: %v", err)
+	}
+
 	for {
 		inputs := gamelogic.GetInput()
 		if len(inputs) == 0 {
