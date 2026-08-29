@@ -42,3 +42,18 @@ The client now subscribes to the `pause` routing key on the direct exchange as s
 Each client binds to its own transient queue named `pause.<username>`, ensuring that pause state is tracked independently per player and cleaned up automatically when the client disconnects.
 
 When a pause message is received, `handlerPause` unmarshals the payload into a `routing.PlayingState` struct and calls `gameState.HandlePause` to update the local game state, then acknowledges the message so it's removed from the queue.
+
+
+## Army Moves (Topic Routing)
+
+Each client subscribes to `army_moves.*` on the `peril_topic` exchange using
+a transient queue named `army_moves.<username>`. This lets every connected
+client receive moves broadcast by any player.
+
+When a player runs the `move` command, the client publishes the resulting
+`ArmyMove` to the `peril_topic` exchange with the routing key
+`army_moves.<username>`, where `<username>` is the player who issued the move.
+
+This demonstrates RabbitMQ's topic exchange wildcard matching:
+- `*` matches exactly one word in the routing key
+- `#` matches zero or more words

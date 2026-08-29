@@ -19,6 +19,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("connection failed: %v", err)
 	}
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("channel creation from Connection failed: %v", err)
+	}
 	defer conn.Close()
 	fmt.Println("Client Connection Succesfull")
 
@@ -45,7 +49,7 @@ func main() {
 	// done, for commands
 	gState := gamelogic.NewGameState(clientName)
 
-	// subscribeJSON
+	// subscribeJSON for Pause
 	queName := routing.PauseKey + "." + clientName
 	err =	 pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect,
 															queName,
@@ -57,6 +61,19 @@ func main() {
 		log.Printf("SubscribeJSON failed: %v", err)
 	}
 
+	//subcriberJSON for move
+	moveQueName := "army_moves" + "." + clientName
+	armyMovesKey := routing.ArmyMovesPrefix + ".*"
+	err = pubsub.SubscribeJSON(conn,
+														routing.ExchangePerilTopic,
+														moveQueName,
+														armyMovesKey,
+														pubsub.Transient,
+														handlerMove(gState),
+													)
+
+
+	//REPL (read eval print loop)
 	for {
 		inputs := gamelogic.GetInput()
 		if len(inputs) == 0 {
@@ -73,7 +90,16 @@ func main() {
 			if err != nil {
 				log.Printf("Command move failed: %v",err)
 			} else {
-				log.Printf("Move Succesfull %v",move)
+				routingKey := routing.ArmyMovesPrefix + "." + clientName
+				err = pubsub.PublishJSON(publishCh,
+																routing.ExchangePerilTopic,
+																routingKey,
+																move,
+															)
+				if err != nil {
+					log.Printf("Publishing Move failed: %v", err)
+				}
+				log.Printf("%v Move Succesfull", move)
 			}
 		case "status":
 			gState.CommandStatus()
