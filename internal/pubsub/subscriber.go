@@ -8,13 +8,23 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+// when declaring struct with lowercase mean 
+// private class discoverable within same package ex: pubsub
+type Acktype int 
+
+const (
+	Ack Acktype = iota 
+	NackRequeue
+	NackDiscard
+)
+
 func SubscribeJSON[T any](
     conn *amqp.Connection,
     exchange,
     queueName,
     key string,
     queueType SimpleQueueType, // an enum to represent "durable" or "transient"
-    handler func(T),
+    handler func(T) Acktype,
 ) error {
 	subChan,_, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
@@ -29,10 +39,23 @@ func SubscribeJSON[T any](
 			var messages T
 			err = json.Unmarshal(delivery.Body, &messages)
 			if err != nil {
-				log.Fatalf("Unmarshaling the delivery message failed: %v", err)
+				log.Printf("failed to unmarshal messages: %v", err)
+				delivery.Nack(false, false)
+				continue
 			}
-			handler(messages)
-			delivery.Ack(false)
+			ackType := handler(messages)
+			
+			switch ackType {
+			case Ack:
+				delivery.Ack(false)
+				log.Printf("Acktype: Ack ")
+			case NackRequeue:
+				delivery.Nack(false, true)
+				log.Printf("Acktype: NackRequeue")
+			case NackDiscard:
+				delivery.Nack(false, false)
+				log.Printf("Acktype: NackDiscard")
+			}	
 		}
 	}()
 	return nil

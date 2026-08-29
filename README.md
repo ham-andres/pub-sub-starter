@@ -57,3 +57,14 @@ When a player runs the `move` command, the client publishes the resulting
 This demonstrates RabbitMQ's topic exchange wildcard matching:
 - `*` matches exactly one word in the routing key
 - `#` matches zero or more words
+
+
+## Message Acknowledgements
+
+Consumers now acknowledge messages after processing:
+
+- `Ack`: message processed successfully
+- `NackRequeue`: processing failed; retry the message
+- `NackDiscard`: processing failed; discard the message
+
+Move events are acknowledged only for safe moves or war outcomes. Invalid or self-originated moves are discarded.
