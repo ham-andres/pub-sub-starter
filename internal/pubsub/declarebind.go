@@ -3,6 +3,7 @@ package pubsub
 import (
 	"fmt"
 
+	
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -19,7 +20,15 @@ func DeclareAndBind(
 		return nil, amqp.Queue{}, fmt.Errorf("Connection Channel failed: %w", err)
 	}
 	durable, autodelete, exclusive := setQueueType(queueType)
-	connQueue, err := connChan.QueueDeclare(queueName, durable, autodelete, exclusive, false, nil ) 
+	connQueue, err := connChan.QueueDeclare(queueName,
+																					durable,
+																					autodelete,
+																					exclusive,
+																					false,
+																					amqp.Table{
+																						"x-dead-letter-exchange": "peril_dlx",
+																					},
+																				) 
 	if err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("queue declare failed: %w",err)
 	}

@@ -68,3 +68,11 @@ Consumers now acknowledge messages after processing:
 - `NackDiscard`: processing failed; discard the message
 
 Move events are acknowledged only for safe moves or war outcomes. Invalid or self-originated moves are discarded.
+
+
+## Dead Letter Queue (DLQ) Integration
+
+To prevent unprocessable or discarded messages from being permanently lost, all client and server queues are configured with a Dead Letter Exchange (`x-dead-letter-exchange`).
+
+- **Handling Rejected Messages**: When a consumer rejects a message without requeuing (`NackDiscard`), RabbitMQ forwards the message to the DLX rather than dropping it.
+- **Inspection & Debugging**: Failed or unhandled messages (e.g., self-originating moves) land in `peril_dlq` where they can be inspected, analyzed, or replayed without disrupting active game queues.
