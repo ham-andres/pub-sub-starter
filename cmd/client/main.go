@@ -58,20 +58,33 @@ func main() {
 															handlerPause(gState),
 														)
 	if err != nil {
-		log.Printf("SubscribeJSON failed: %v", err)
+		log.Printf("Pause SubscribeJSON failed: %v", err)
 	}
 
 	//subcriberJSON for move
-	moveQueName := "army_moves" + "." + clientName
+	moveQueName := "army_moves" + "." + gState.GetUsername()
 	armyMovesKey := routing.ArmyMovesPrefix + ".*"
 	err = pubsub.SubscribeJSON(conn,
 														routing.ExchangePerilTopic,
 														moveQueName,
 														armyMovesKey,
 														pubsub.Transient,
-														handlerMove(gState),
+														handlerMove(gState, publishCh),
 													)
-
+	if err != nil {
+		log.Printf("Move SubscribeJSON failed: %v ", err)
+	}
+	// subscriberJSON for war
+	err = pubsub.SubscribeJSON(conn,
+														routing.ExchangePerilTopic,
+														routing.WarRecognitionsPrefix,
+														routing.WarRecognitionsPrefix + ".*",
+														pubsub.Durable,
+														handlerWar(gState),
+													)
+	if err != nil {
+		log.Printf("War SubscribeJSON failed: %v", err)
+	}
 
 	//REPL (read eval print loop)
 	for {
@@ -83,24 +96,24 @@ func main() {
 		case "spawn":
 			err = gState.CommandSpawn(inputs)
 			if err != nil {
-				log.Printf("Command Spawn issue: %v", err)
+				fmt.Printf("Command Spawn issue: %v", err)
+				continue
 			}
 		case "move":
 			move, err := gState.CommandMove(inputs)
 			if err != nil {
-				log.Printf("Command move failed: %v",err)
-			} else {
-				routingKey := routing.ArmyMovesPrefix + "." + clientName
-				err = pubsub.PublishJSON(publishCh,
-																routing.ExchangePerilTopic,
-																routingKey,
-																move,
-															)
-				if err != nil {
-					log.Printf("Publishing Move failed: %v", err)
-				}
-				log.Printf("%v Move Succesfull", move)
+				fmt.Printf("Command move failed: %v",err)
+				continue
 			}
+			err = pubsub.PublishJSON(publishCh,
+															routing.ExchangePerilTopic,
+															routing.ArmyMovesPrefix +"."+move.Player.Username,
+															move,	
+														)
+			if err != nil {
+				fmt.Printf("error: %s \n",err)
+			}
+			fmt.Printf("moved %v unit to %s\n (Move Succesfull)",len(move.Units), move.ToLocation)
 		case "status":
 			gState.CommandStatus()
 		
@@ -108,13 +121,13 @@ func main() {
 			gamelogic.PrintClientHelp()
 	
 		case "spam":
-			log.Println("Spamming not allowed yet!")
+			fmt.Println("Spamming not allowed yet!")
 	
 		case "quit":
 			gamelogic.PrintQuit()
 			return
 		default:
-			log.Println("Invalid command! Use proper command!!")
+			fmt.Println("Invalid command! Use proper command!!")
 		}
 	}
 

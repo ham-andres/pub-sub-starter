@@ -76,3 +76,9 @@ To prevent unprocessable or discarded messages from being permanently lost, all 
 
 - **Handling Rejected Messages**: When a consumer rejects a message without requeuing (`NackDiscard`), RabbitMQ forwards the message to the DLX rather than dropping it.
 - **Inspection & Debugging**: Failed or unhandled messages (e.g., self-originating moves) land in `peril_dlq` where they can be inspected, analyzed, or replayed without disrupting active game queues.
+
+## NackRequeue
+
+Publish the return outcome of move, in HandlerMove which will be used to display in both of the client,
+
+- first we did NackRequeue then after messing around and getting the endless loop of NackRequeue, we fix it with AckType (Ack) for case when fails
