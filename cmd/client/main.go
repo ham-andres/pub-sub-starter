@@ -5,6 +5,8 @@ import (
 	"log"
 	"os/signal"
 	"os"
+	"strconv"
+	"time"
 	
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -50,7 +52,7 @@ func main() {
 	gState := gamelogic.NewGameState(clientName)
 
 	// subscribeJSON for Pause
-	queName := routing.PauseKey + "." + clientName
+	queName := routing.PauseKey + "." + gState.GetUsername()
 	err =	 pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect,
 															queName,
 															routing.PauseKey,
@@ -121,7 +123,34 @@ func main() {
 			gamelogic.PrintClientHelp()
 	
 		case "spam":
-			fmt.Println("Spamming not allowed yet!")
+			if len(inputs) < 2 {
+				fmt.Println("Invalid spam command")
+				continue
+			}
+			n, err := strconv.Atoi(inputs[1])
+			if err != nil {
+				fmt.Printf("string to integer conversion failed: %v", err)
+				continue
+			}
+			for n > 0 {
+				msg := gamelogic.GetMaliciousLog()
+				err = pubsub.PublishGob(
+															publishCh,
+															routing.ExchangePerilTopic,
+															routing.GameLogSlug+"."+gState.GetUsername(),
+															routing.GameLog{
+																CurrentTime: time.Now(),
+																Message: msg,
+																Username: gState.GetUsername(),
+															},
+				)
+				if err != nil {
+					fmt.Printf("PublishGob Spam failed: %v", err)
+					continue
+				}
+				n -= 1
+			}
+			
 	
 		case "quit":
 			gamelogic.PrintQuit()

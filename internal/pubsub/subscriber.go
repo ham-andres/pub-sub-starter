@@ -34,6 +34,14 @@ func SubscribeJSON[T any](
 	if err != nil {
 		return fmt.Errorf("Declare and bind failed in subscriber: %w", err)
 	}
+
+	//prefetch
+	err = subChan.Qos(10, 0, false)
+	if err != nil {
+		return fmt.Errorf("Qos of JSON failed: %v", err)
+	}
+
+
 	messageDelivery, err := subChan.Consume(queueName, "", false, false, false, false, nil )
 	if err != nil {
 		return fmt.Errorf("channel.Consume failed: %w", err)
@@ -77,6 +85,14 @@ func SubscribeGob[T any](
 		if err != nil {
 			return fmt.Errorf("Declare and Bind failed for SubscribeGob: %w", err)
 		}
+		// prefetch 
+		err = subChan.Qos(10, 0, false)
+		if err != nil {
+			return fmt.Errorf("Qos Gob failed: %v", err)
+		}
+
+
+		// consumer 
 		messageDelivery, err := subChan.Consume(queueName, "", false, false, false, false, nil)
 		if err != nil {
 			return fmt.Errorf("subscribeGob channel consume failed: %w", err)
