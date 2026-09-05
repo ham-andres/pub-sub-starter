@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -49,24 +50,61 @@ func handlerMove(gs *gamelogic.GameState, publishChan *amqp.Channel) func(gamelo
 	}
 }
 
+// helper for publish gamelog with pubsub.PublishGob 
+func publishGameLog(publishCh *amqp.Channel, username, msg string) error {
+	return pubsub.PublishGob(
+		publishCh,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug+"."+username,
+		routing.GameLog{
+			CurrentTime: time.Now(),
+			Message: msg,
+			Username: username,
+		},
+	)
+}
 // handler function for War 
-func handlerWar(gs *gamelogic.GameState) func(war gamelogic.RecognitionOfWar) pubsub.Acktype {
+func handlerWar(gs *gamelogic.GameState, publishChan *amqp.Channel) func(war gamelogic.RecognitionOfWar) pubsub.Acktype {
 	return func(war gamelogic.RecognitionOfWar) pubsub.Acktype {
 		defer fmt.Printf("> ")
-		warOutcome, _, _ := gs.HandleWar(war) 
+		warOutcome, attacker, defender := gs.HandleWar(war) 
 		switch warOutcome {
 		case gamelogic.WarOutcomeNotInvolved:
 			return pubsub.NackRequeue
 		case gamelogic.WarOutcomeNoUnits:
 			return pubsub.NackDiscard
 		case gamelogic.WarOutcomeOpponentWon:
+			err := publishGameLog(publishChan,
+														gs.GetUsername(),
+														fmt.Sprintf("%s won a war against %s", defender, attacker),
+													)
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
+
 		case gamelogic.WarOutcomeYouWon:
+			err := publishGameLog(publishChan,
+														gs.GetUsername(),
+														fmt.Sprintf("%s won a war against %s", attacker, defender),
+													)
+  		if err != nil {
+				 return pubsub.NackRequeue
+			}
 			return pubsub.Ack
+
 		case gamelogic.WarOutcomeDraw:
+			err := publishGameLog(publishChan,
+													gs.GetUsername(),
+													fmt.Sprintf("A war between %s and %s resulted in a draw", attacker, defender),
+												)
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 
 		}
+
 		fmt.Println("error: unknown move outcome")
 		return pubsub.NackDiscard
 	}

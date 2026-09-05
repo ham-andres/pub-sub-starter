@@ -29,16 +29,30 @@ func main() {
 		log.Fatalf("Connection Channel creation failed: %v", err)
 	}
 	// declare and bind durable
-	key := "game_logs.*"
-	_,_, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, key, pubsub.Durable)
+	// key := "game_logs.*"
+	// _,_, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, key, pubsub.Durable)
+	// if err != nil {
+	// 	log.Fatalf("DeclareAndBind failed in server: %v", err)
+	// }
+
+	// subscribeGob for game_logs
+	err = pubsub.SubscribeGob(conn,
+														routing.ExchangePerilTopic,
+														routing.GameLogSlug,
+														routing.GameLogSlug+".*",
+														pubsub.Durable,
+														handleLog(),
+													)
 	if err != nil {
-		log.Fatalf("DeclareAndBind failed in server: %v", err)
+		log.Printf("SubscribeGob failed in server main: %v", err)
 	}
-	// publishing
+
+	// publishing JSON
 	err = pubsub.PublishJSON(connChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{ IsPaused:	true,})
 	if err != nil {
 		log.Fatalf("Couldnt publish json: %v", err)
 	}
+
 
 	
 	// decoupling

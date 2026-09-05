@@ -80,7 +80,7 @@ func main() {
 														routing.WarRecognitionsPrefix,
 														routing.WarRecognitionsPrefix + ".*",
 														pubsub.Durable,
-														handlerWar(gState),
+														handlerWar(gState, publishCh),
 													)
 	if err != nil {
 		log.Printf("War SubscribeJSON failed: %v", err)

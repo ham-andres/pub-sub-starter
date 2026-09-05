@@ -3,7 +3,11 @@ package pubsub
 import (
 	"fmt"
 	"log"
+	"bytes"
+	"encoding/gob"
+
 	"encoding/json"
+	
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -59,4 +63,52 @@ func SubscribeJSON[T any](
 		}
 	}()
 	return nil
+}
+
+func SubscribeGob[T any](
+		conn *amqp.Connection,
+		exchange,
+		queueName,
+		key string,
+		queueType SimpleQueueType,
+		handler func(T) Acktype,
+	) error {
+		subChan, _, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
+		if err != nil {
+			return fmt.Errorf("Declare and Bind failed for SubscribeGob: %w", err)
+		}
+		messageDelivery, err := subChan.Consume(queueName, "", false, false, false, false, nil)
+		if err != nil {
+			return fmt.Errorf("subscribeGob channel consume failed: %w", err)
+		}
+
+		go func() {
+			for delivery := range messageDelivery {
+				var message T 
+				buffer := bytes.NewReader(delivery.Body)
+				decoder := gob.NewDecoder(buffer)
+				err := decoder.Decode(&message)
+				if err != nil {
+					log.Printf("failed in Gob decoder: %v", err)
+					delivery.Nack(false, false)
+					continue
+				}
+				ackType := handler(message)
+
+				switch ackType {
+				case Ack:
+					delivery.Ack(false)
+					log.Printf("Acktype: Ack")
+
+				case NackRequeue:
+					delivery.Nack(false, true)
+					log.Printf("Acktype: NackRequeue")
+
+				case NackDiscard:
+					delivery.Nack(false, false)
+					log.Printf("Acktype: NackDiscard")
+				}
+			}
+		}()
+		return nil
 }

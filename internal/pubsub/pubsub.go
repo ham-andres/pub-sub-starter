@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"fmt"
+	"bytes"
 	"encoding/json"
 	"context"
 	"encoding/gob"
